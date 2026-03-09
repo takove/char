@@ -1,0 +1,108 @@
+# Implementation Plan: Speech Recognition Improvements + Screen Capture
+
+## Part 1: Confidence-Based Word Highlighting + LLM Correction Suggestions
+
+### Problem
+STT providers (Deepgram, Soniox, etc.) return per-word `confidence` scores (0.0–1.0), but they are **dropped** in `transformWordEntries()` at `apps/desktop/src/store/zustand/listener/utils.ts:40`. The `WordLike` type lacks a confidence field. The storage format (`TranscriptWord.metadata` in `crates/fs-format/src/transcript.rs:50`) already supports it, but the frontend pipeline never populates it.
+
+### Step 1: Add `confidence` to `WordLike` and `SegmentWord` types
+**Files:**
+- `packages/transcript/src/shared.ts` — Add `confidence?: number` to `WordLike`
+
+### Step 2: Preserve confidence through the transform pipeline
+**Files:**
+- `apps/desktop/src/store/zustand/listener/utils.ts` — Add `confidence` to `WordEntry` type and propagate it in `transformWordEntries()`
+- Update callers that construct `WordEntry` objects to include confidence
+
+### Step 3: Persist confidence in transcript metadata
+**Files:**
+- `apps/desktop/src/store/tinybase/persister/session/save/transcript.ts` — Ensure `metadata.confidence` is written to `TranscriptWord`
+- `apps/desktop/src/store/tinybase/persister/session/load/transcript.ts` — Ensure confidence is loaded back from `metadata`
+
+### Step 4: Visual highlighting of low-confidence words
+**Files:**
+- `packages/transcript/src/ui/word-span.tsx` — Add conditional styling for low-confidence words (e.g., dashed underline + subtle background color when `confidence < 0.85`)
+- Use `cn()` with confidence-based classes
+
+### Step 5: LLM correction suggestions for low-confidence words
+**Files:**
+- `apps/desktop/src/session/components/note-input/transcript/shared/word-span.tsx` — Add "Suggest correction" to context menu for low-confidence words
+- Create a new hook `useWordCorrection.ts` that sends surrounding transcript context + the uncertain word to the LLM (via existing local-llm or API) and returns alternative suggestions
+- Show suggestions in a small popover/dropdown, allowing the user to accept a correction (which updates the word text in TinyBase)
+
+### Step 6: Update tests
+**Files:**
+- `apps/desktop/src/store/zustand/listener/utils.test.ts`
+- `apps/desktop/src/store/zustand/listener/transcript.test.ts`
+- `apps/desktop/src/store/tinybase/persister/session/load/transcript.test.ts`
+
+---
+
+## Part 2: Screen Recording + Screenshots
+
+### Problem
+The `screen` plugin (`plugins/screen/`) is a placeholder with only a `ping()` command. No screen capture or screenshot functionality exists. The user wants to capture visual context during meetings.
+
+### Step 7: Add ScreenCapture permission type
+**Files:**
+- `plugins/permissions/src/lib.rs` — Add `ScreenCapture` variant to the permission enum
+- Platform-specific implementation for requesting screen capture permission (macOS: `Privacy_ScreenCapture`, Linux: varies)
+
+### Step 8: Implement screenshot capture in the screen plugin
+**Files:**
+- `plugins/screen/src/commands.rs` — Add `capture_screenshot(session_id)` command
+  - Uses platform APIs (e.g., `xcap` crate for cross-platform screen capture)
+  - Saves PNG to session attachments directory via fs-sync
+  - Returns `AttachmentSaveResult`
+- `plugins/screen/Cargo.toml` — Add `xcap` dependency
+- `plugins/screen/src/lib.rs` — Register the new command
+
+### Step 9: Implement screen recording in the screen plugin
+**Files:**
+- `plugins/screen/src/commands.rs` — Add commands:
+  - `start_screen_recording(session_id)` — Begins recording, stores video in session dir
+  - `stop_screen_recording()` — Stops recording, returns file path
+  - `is_recording()` — Returns current recording state
+- Use `xcap` for frame capture + `ffmpeg` CLI or a Rust encoder crate for video encoding
+- Store as `.mp4` in the session attachments directory
+
+### Step 10: Generate TypeScript bindings
+**Files:**
+- `plugins/screen/js/bindings.gen.ts` — Auto-generated via `cargo test --package hypr-plugin-screen`
+
+### Step 11: Add screenshot UI button
+**Files:**
+- `apps/desktop/src/session/components/floating/options-menu.tsx` or a new button in the session header — Add "Take Screenshot" button
+- Wire to `captureScreenshot()` command
+- Show toast notification on success
+- Add captured screenshot to the attachments list
+
+### Step 12: Add screen recording UI controls
+**Files:**
+- `apps/desktop/src/session/components/floating/` — Add record button (red dot indicator when recording)
+- Toggle start/stop recording
+- Show recording duration indicator
+- Auto-stop when session ends
+
+### Step 13: Add periodic auto-screenshot setting
+**Files:**
+- Add a setting in session/meeting preferences for auto-screenshot interval (off / 15s / 30s / 60s)
+- Implement interval-based capture that runs during active listening sessions
+- Store setting via the settings plugin
+
+### Step 14: Display screenshots and recordings in attachments
+**Files:**
+- `apps/desktop/src/session/components/note-input/attachments/` — Enhance to:
+  - Show screenshot thumbnails with timestamps
+  - Add video playback for screen recordings (HTML5 `<video>` element)
+  - Allow clicking screenshots to view full-size
+
+---
+
+## Implementation Order
+1. Steps 1–4 (confidence pipeline + highlighting) — foundational, low risk
+2. Step 5 (LLM suggestions) — builds on confidence data
+3. Step 6 (tests)
+4. Steps 7–8 (screenshot capture) — standalone feature
+5. Steps 11, 14 (screenshot UI) — user-visible feature
+6. Steps 9, 12–13 (screen recording) — more complex, builds on screenshot work
