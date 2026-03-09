@@ -8,6 +8,8 @@ import type {
 } from "@hypr/transcript";
 import { cn } from "@hypr/utils";
 
+import { useWordCorrection } from "./use-word-correction";
+
 import {
   createSegmentKey,
   segmentsShallowEqual,
@@ -153,6 +155,14 @@ const SegmentsList = memo(
       [audioExists, offsetMs, seek, startPlayback],
     );
 
+    const allWords = useMemo(
+      () => segments.flatMap((s) => s.words),
+      [segments],
+    );
+    const getContextWords = useCallback(() => allWords, [allWords]);
+    const { state: correctionState, suggestCorrection } =
+      useWordCorrection(getContextWords);
+
     useEffect(() => {
       if (!scrollElement || !shouldScrollToEnd) {
         return;
@@ -183,6 +193,8 @@ const SegmentsList = memo(
               currentMs={currentMs}
               seekAndPlay={seekAndPlay}
               audioExists={audioExists}
+              correctionState={correctionState}
+              onSuggestCorrection={operations ? suggestCorrection : undefined}
             />
           </div>
         ))}

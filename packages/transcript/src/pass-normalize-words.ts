@@ -21,6 +21,7 @@ const toSegmentWord = (word: WordLike, isFinal: boolean): SegmentWord => {
     end_ms: word.end_ms,
     channel: word.channel,
     isFinal,
+    confidence: word.confidence,
   };
 
   if ("id" in word && word.id) {

@@ -35,6 +35,7 @@ export type WordEntry = {
   start: number;
   end: number;
   speaker?: number | null;
+  confidence?: number;
 };
 
 export function transformWordEntries(
@@ -60,6 +61,7 @@ export function transformWordEntries(
       start_ms: Math.round(word.start * 1000),
       end_ms: Math.round(word.end * 1000),
       channel,
+      confidence: word.confidence,
     });
 
     if (typeof word.speaker === "number") {

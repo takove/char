@@ -112,10 +112,38 @@ export function Transcript({
     [store, indexes, checkpoints, sessionId],
   );
 
+  const handleEditWord = useCallback(
+    (wordId: string, newText: string) => {
+      if (!store || !indexes || !checkpoints) {
+        return;
+      }
+
+      const found = findTranscriptContainingWord(
+        store,
+        indexes,
+        sessionId,
+        wordId,
+      );
+      if (!found) return;
+
+      const { transcriptId, words } = found;
+
+      const updatedWords = words.map((w) =>
+        w.id === wordId ? { ...w, text: newText } : w,
+      );
+
+      updateTranscriptWords(store, transcriptId, updatedWords);
+
+      checkpoints.addCheckpoint("edit_word");
+    },
+    [store, indexes, checkpoints, sessionId],
+  );
+
   const operations = isEditing
     ? {
         onDeleteWord: handleDeleteWord,
         onAssignSpeaker: handleAssignSpeaker,
+        onEditWord: handleEditWord,
       }
     : undefined;
 

@@ -2,6 +2,7 @@ import { FolderChain } from "./folder";
 import { ListenButton } from "./listen";
 import { MetadataButton } from "./metadata";
 import { OverflowButton } from "./overflow";
+import { ScreenCaptureButtons } from "./screen-capture";
 
 import type { EditorView } from "~/store/zustand/tabs/schema";
 
@@ -20,6 +21,7 @@ export function OuterHeader({
         </div>
 
         <div className="flex shrink-0 items-center">
+          <ScreenCaptureButtons sessionId={sessionId} />
           <MetadataButton sessionId={sessionId} />
           <ListenButton sessionId={sessionId} />
           <OverflowButton sessionId={sessionId} currentView={currentView} />

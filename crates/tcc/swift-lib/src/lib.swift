@@ -38,6 +38,19 @@ public func _reset_audio_capture_permission(bundleId: SRString) -> Bool {
   return reset("kTCCServiceAudioCapture" as CFString, nsString as CFString) == 0
 }
 
+@_cdecl("_screen_capture_permission_status")
+public func _screen_capture_permission_status() -> Int {
+  guard let apiHandle,
+    let funcSym = dlsym(apiHandle, "TCCAccessPreflight"),
+    let preflight = unsafeBitCast(funcSym, to: PreflightFuncType.self) as PreflightFuncType?
+  else {
+    return -1
+  }
+
+  let result = preflight("kTCCServiceScreenCapture" as CFString, nil)
+  return result
+}
+
 @_cdecl("_reset_microphone_permission")
 public func _reset_microphone_permission(bundleId: SRString) -> Bool {
   guard let apiHandle,

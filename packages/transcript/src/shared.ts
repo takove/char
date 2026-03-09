@@ -9,6 +9,7 @@ export type WordLike = {
   start_ms: number;
   end_ms: number;
   channel: ChannelProfile;
+  confidence?: number;
 };
 
 export type PartialWord = WordLike;
@@ -192,4 +193,5 @@ export type SpeakerState = {
 export type Operations = {
   onDeleteWord?: (wordId: string) => void;
   onAssignSpeaker?: (wordIds: string[], humanId: string) => void;
+  onEditWord?: (wordId: string, newText: string) => void;
 };
