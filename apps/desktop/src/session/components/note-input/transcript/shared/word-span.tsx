@@ -5,31 +5,78 @@ import type { HighlightSegment } from "@hypr/transcript/ui";
 import { WordSpan as SharedWordSpan } from "@hypr/transcript/ui";
 
 import { useTranscriptSearch } from "~/session/components/note-input/transcript/search-context";
+import type { MenuItemDef } from "~/shared/hooks/useNativeContextMenu";
 import { useNativeContextMenu } from "~/shared/hooks/useNativeContextMenu";
+
+import type { CorrectionState } from "./use-word-correction";
+
+const LOW_CONFIDENCE_THRESHOLD = 0.85;
 
 interface WordSpanProps {
   word: SegmentWord;
   audioExists: boolean;
   operations?: Operations;
   onClickWord: (word: SegmentWord) => void;
+  correctionState?: CorrectionState;
+  onSuggestCorrection?: (word: SegmentWord) => void;
 }
 
 export function WordSpan(props: WordSpanProps) {
   const searchHighlights = useTranscriptSearchHighlights(props.word);
 
-  const contextMenu = useMemo(
-    () =>
-      props.operations && props.word.id
-        ? [
-            {
-              id: "delete",
-              text: "Delete",
-              action: () => props.operations!.onDeleteWord?.(props.word.id!),
-            },
-          ]
-        : [],
-    [props.operations, props.word.id],
-  );
+  const isLowConfidence =
+    props.word.confidence !== undefined &&
+    props.word.confidence < LOW_CONFIDENCE_THRESHOLD &&
+    props.word.isFinal;
+
+  const suggestions =
+    props.correctionState?.targetWord?.id === props.word.id
+      ? props.correctionState.suggestions
+      : [];
+
+  const contextMenu = useMemo(() => {
+    if (!props.operations || !props.word.id) {
+      return [];
+    }
+
+    const items: MenuItemDef[] = [
+      {
+        id: "delete",
+        text: "Delete",
+        action: () => props.operations!.onDeleteWord?.(props.word.id!),
+      },
+    ];
+
+    if (isLowConfidence && props.onSuggestCorrection) {
+      items.unshift({ separator: true });
+
+      if (suggestions.length > 0) {
+        suggestions.forEach((suggestion, i) => {
+          items.unshift({
+            id: `suggestion-${i}`,
+            text: `Replace with "${suggestion}"`,
+            action: () =>
+              props.operations!.onEditWord?.(props.word.id!, suggestion),
+          });
+        });
+      }
+
+      items.unshift({
+        id: "suggest-correction",
+        text: "Suggest correction...",
+        action: () => props.onSuggestCorrection!(props.word),
+      });
+    }
+
+    return items;
+  }, [
+    props.operations,
+    props.word.id,
+    isLowConfidence,
+    props.onSuggestCorrection,
+    suggestions,
+    props.word,
+  ]);
 
   const showMenu = useNativeContextMenu(contextMenu);
 

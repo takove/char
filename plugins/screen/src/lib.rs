@@ -5,6 +5,9 @@ mod ext;
 pub use error::{Error, Result};
 pub use ext::*;
 
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
 const PLUGIN_NAME: &str = "screen";
 
 fn make_specta_builder<R: tauri::Runtime>() -> tauri_specta::Builder<R> {
@@ -12,6 +15,10 @@ fn make_specta_builder<R: tauri::Runtime>() -> tauri_specta::Builder<R> {
         .plugin_name(PLUGIN_NAME)
         .commands(tauri_specta::collect_commands![
             commands::ping::<tauri::Wry>,
+            commands::capture_screenshot::<tauri::Wry>,
+            commands::start_recording::<tauri::Wry>,
+            commands::stop_recording::<tauri::Wry>,
+            commands::get_recording_status::<tauri::Wry>,
         ])
         .error_handling(tauri_specta::ErrorHandlingMode::Result)
 }
@@ -21,7 +28,10 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
 
     tauri::plugin::Builder::new(PLUGIN_NAME)
         .invoke_handler(specta_builder.invoke_handler())
-        .setup(|_app, _api| Ok(()))
+        .setup(|app, _api| {
+            app.manage(Arc::new(Mutex::new(RecordingState::default())));
+            Ok(())
+        })
         .build()
 }
 

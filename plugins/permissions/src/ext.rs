@@ -27,6 +27,7 @@ pub enum Permission {
     Microphone,
     SystemAudio,
     Accessibility,
+    ScreenCapture,
 }
 
 pub struct Permissions<'a, R: tauri::Runtime, M: tauri::Manager<R>> {
@@ -43,6 +44,7 @@ impl<'a, R: tauri::Runtime, M: tauri::Manager<R>> Permissions<'a, R, M> {
             Permission::Microphone => self.open_microphone().await,
             Permission::SystemAudio => self.open_system_audio().await,
             Permission::Accessibility => self.open_accessibility().await,
+            Permission::ScreenCapture => self.open_screen_capture().await,
         }
     }
 
@@ -69,6 +71,7 @@ impl<'a, R: tauri::Runtime, M: tauri::Manager<R>> Permissions<'a, R, M> {
             Permission::Microphone => self.check_microphone().await,
             Permission::SystemAudio => self.check_system_audio().await,
             Permission::Accessibility => self.check_accessibility().await,
+            Permission::ScreenCapture => self.check_screen_capture().await,
         }
     }
 
@@ -81,6 +84,7 @@ impl<'a, R: tauri::Runtime, M: tauri::Manager<R>> Permissions<'a, R, M> {
             Permission::Contacts => "contacts",
             Permission::Microphone => "microphone",
             Permission::Accessibility => "accessibility",
+            Permission::ScreenCapture => "screenCapture",
             Permission::SystemAudio => unreachable!(),
         };
 
@@ -143,6 +147,7 @@ impl<'a, R: tauri::Runtime, M: tauri::Manager<R>> Permissions<'a, R, M> {
             Permission::Microphone => self.request_microphone().await,
             Permission::SystemAudio => self.request_system_audio().await,
             Permission::Accessibility => self.request_accessibility().await,
+            Permission::ScreenCapture => self.request_screen_capture().await,
         }
     }
 
@@ -153,6 +158,7 @@ impl<'a, R: tauri::Runtime, M: tauri::Manager<R>> Permissions<'a, R, M> {
             Permission::Microphone => self.reset_microphone().await,
             Permission::SystemAudio => self.reset_system_audio().await,
             Permission::Accessibility => self.reset_accessibility().await,
+            Permission::ScreenCapture => self.reset_screen_capture().await,
         }
     }
 
@@ -378,6 +384,41 @@ impl<'a, R: tauri::Runtime, M: tauri::Manager<R>> Permissions<'a, R, M> {
         {
             macos_accessibility_client::accessibility::application_is_trusted_with_prompt();
         }
+
+        Ok(())
+    }
+
+    async fn open_screen_capture(&self) -> Result<(), crate::Error> {
+        #[cfg(target_os = "macos")]
+        {
+            std::process::Command::new("open")
+                .arg(
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture",
+                )
+                .spawn()?
+                .wait()?;
+        }
+
+        Ok(())
+    }
+
+    async fn check_screen_capture(&self) -> Result<PermissionStatus, crate::Error> {
+        #[cfg(target_os = "macos")]
+        return check!("screen_capture", hypr_tcc::screen_capture_permission_status());
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            Ok(PermissionStatus::Authorized)
+        }
+    }
+
+    async fn request_screen_capture(&self) -> Result<(), crate::Error> {
+        self.open_screen_capture().await
+    }
+
+    async fn reset_screen_capture(&self) -> Result<(), crate::Error> {
+        #[cfg(target_os = "macos")]
+        self.reset_tcc("ScreenCapture").await;
 
         Ok(())
     }

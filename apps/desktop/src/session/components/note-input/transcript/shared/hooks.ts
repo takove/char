@@ -18,7 +18,9 @@ import {
 import * as main from "~/store/tinybase/store/main";
 import { convertStorageHintsToRuntime } from "~/stt/speaker-hints";
 
-export function useFinalWords(transcriptId: string): (Word & { id: string })[] {
+export function useFinalWords(
+  transcriptId: string,
+): (Word & { id: string; confidence?: number })[] {
   const wordsJson = main.UI.useCell(
     "transcripts",
     transcriptId,
@@ -32,7 +34,14 @@ export function useFinalWords(transcriptId: string): (Word & { id: string })[] {
     }
 
     try {
-      return JSON.parse(wordsJson) as (Word & { id: string })[];
+      const words = JSON.parse(wordsJson) as (Word & { id: string })[];
+      return words.map((word) => ({
+        ...word,
+        confidence:
+          typeof word.metadata?.confidence === "number"
+            ? word.metadata.confidence
+            : undefined,
+      }));
     } catch {
       return [];
     }

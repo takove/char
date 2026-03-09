@@ -2,6 +2,8 @@ use swift_rs::{Bool, Int, SRString, swift};
 
 swift!(fn _audio_capture_permission_status() -> Int);
 
+swift!(fn _screen_capture_permission_status() -> Int);
+
 swift!(fn _reset_audio_capture_permission(bundle_id: SRString) -> Bool);
 
 swift!(fn _reset_microphone_permission(bundle_id: SRString) -> Bool);
@@ -13,6 +15,10 @@ pub const GRANTED: isize = 0;
 
 pub fn audio_capture_permission_status() -> isize {
     unsafe { _audio_capture_permission_status() }
+}
+
+pub fn screen_capture_permission_status() -> isize {
+    unsafe { _screen_capture_permission_status() }
 }
 
 pub fn reset_audio_capture_permission(bundle_id: impl Into<SRString>) -> bool {

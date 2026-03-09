@@ -5,6 +5,16 @@ import { cn } from "@hypr/utils";
 import type { Operations, SegmentWord } from "../shared";
 import type { HighlightSegment } from "./utils";
 
+const LOW_CONFIDENCE_THRESHOLD = 0.85;
+
+function isLowConfidence(word: SegmentWord): boolean {
+  return (
+    word.confidence !== undefined &&
+    word.confidence < LOW_CONFIDENCE_THRESHOLD &&
+    word.isFinal
+  );
+}
+
 export interface WordSpanProps {
   word: SegmentWord;
   audioExists: boolean;
@@ -42,13 +52,22 @@ function ViewerWordSpan({
     highlights.isActive,
   );
 
+  const lowConfidence = isLowConfidence(word);
+
   const className = useMemo(
     () =>
       cn([
         audioExists && "cursor-pointer hover:bg-neutral-200/60",
         !word.isFinal && ["opacity-60", "italic"],
+        lowConfidence && [
+          "underline",
+          "decoration-dashed",
+          "decoration-amber-500/70",
+          "bg-amber-50",
+          "rounded-sm",
+        ],
       ]),
-    [audioExists, word.isFinal],
+    [audioExists, word.isFinal, lowConfidence],
   );
 
   const handleClick = useCallback(() => {
@@ -56,7 +75,12 @@ function ViewerWordSpan({
   }, [word, onClickWord]);
 
   return (
-    <span onClick={handleClick} className={className} data-word-id={word.id}>
+    <span
+      onClick={handleClick}
+      className={className}
+      data-word-id={word.id}
+      title={lowConfidence ? `Low confidence: ${Math.round(word.confidence! * 100)}%` : undefined}
+    >
       {content}
     </span>
   );
@@ -80,13 +104,22 @@ function EditorWordSpan({
     highlights.isActive,
   );
 
+  const lowConfidence = isLowConfidence(word);
+
   const className = useMemo(
     () =>
       cn([
         audioExists && "cursor-pointer hover:bg-neutral-200/60",
         !word.isFinal && ["opacity-60", "italic"],
+        lowConfidence && [
+          "underline",
+          "decoration-dashed",
+          "decoration-amber-500/70",
+          "bg-amber-50",
+          "rounded-sm",
+        ],
       ]),
-    [audioExists, word.isFinal],
+    [audioExists, word.isFinal, lowConfidence],
   );
 
   const handleClick = useCallback(() => {
@@ -106,6 +139,7 @@ function EditorWordSpan({
       onContextMenu={handleContextMenu}
       className={className}
       data-word-id={word.id}
+      title={lowConfidence ? `Low confidence: ${Math.round(word.confidence! * 100)}%` : undefined}
     >
       {content}
     </span>

@@ -81,6 +81,9 @@ export function useStartListening(sessionId: string) {
             start_ms: word.start_ms,
             end_ms: word.end_ms,
             channel: word.channel,
+            ...(word.confidence !== undefined
+              ? { metadata: { confidence: word.confidence } }
+              : {}),
           });
 
           newWordIds.push(wordId);

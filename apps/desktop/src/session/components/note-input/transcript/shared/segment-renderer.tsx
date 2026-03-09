@@ -6,6 +6,7 @@ import { groupWordsIntoLines } from "@hypr/transcript/ui";
 import { cn } from "@hypr/utils";
 
 import { SegmentHeader } from "./segment-header";
+import type { CorrectionState } from "./use-word-correction";
 import { WordSpan } from "./word-span";
 
 function getSegmentTimeRange(
@@ -31,6 +32,8 @@ export const SegmentRenderer = memo(
     currentMs,
     seekAndPlay,
     audioExists,
+    correctionState,
+    onSuggestCorrection,
   }: {
     editable: boolean;
     segment: Segment;
@@ -41,6 +44,8 @@ export const SegmentRenderer = memo(
     currentMs: number;
     seekAndPlay: (word: SegmentWord) => void;
     audioExists: boolean;
+    correctionState?: CorrectionState;
+    onSuggestCorrection?: (word: SegmentWord) => void;
   }) => {
     const lines = useMemo(
       () => groupWordsIntoLines(segment.words),
@@ -87,6 +92,8 @@ export const SegmentRenderer = memo(
                     audioExists={audioExists}
                     operations={operations}
                     onClickWord={seekAndPlay}
+                    correctionState={correctionState}
+                    onSuggestCorrection={onSuggestCorrection}
                   />
                 ))}
               </span>
@@ -105,7 +112,9 @@ export const SegmentRenderer = memo(
       prev.sessionId !== next.sessionId ||
       prev.speakerLabelManager !== next.speakerLabelManager ||
       prev.audioExists !== next.audioExists ||
-      prev.seekAndPlay !== next.seekAndPlay
+      prev.seekAndPlay !== next.seekAndPlay ||
+      prev.correctionState !== next.correctionState ||
+      prev.onSuggestCorrection !== next.onSuggestCorrection
     ) {
       return false;
     }
